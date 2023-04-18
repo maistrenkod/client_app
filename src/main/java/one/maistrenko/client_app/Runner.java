@@ -2,13 +2,13 @@ package one.maistrenko.client_app;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
+import java.util.Random;
 import java.util.Scanner;
 
 @Component("runner")
@@ -18,76 +18,82 @@ public class Runner implements CommandLineRunner {
 
     private RestTemplate restTemplate = new RestTemplate();
     @Autowired
-    private MessageDescriptionServiceImpl service;
+    private MessageServiceImpl service;
 
     @Override
     public void run(String... args) throws Exception {
 
-        Scanner scanner = new Scanner(System.in);
-        Scanner scanner1 = new Scanner(System.in);
-        while(true){
-            System.out.println("Enter command:");
-            switch (scanner.nextLine()){
-                case "send-random":
-                    sendRandom();
-                    break;
-                case "send-with-length-between":
-                    sendWithLengthBetween(scanner1);
-                    break;
-                case "send-with-length":
-                    sendWithLength(scanner1);
-                    break;
-                case "exit":
-                    System.exit(0);
-                default:
-                    System.out.println("This command not exists. Try again.");
+        whiteNoiseLengthSender();
+
+    }
+
+    public void poissonLengthSender() throws Exception {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        int meanLength = 50;
+        Random random = new Random();
+        for (int i = 0; i < 100; i++) {
+            int length = (int) Math.floor(random.nextGaussian() * meanLength + meanLength);
+            String body = service.randomGenerateString(length, true, true);
+            HttpStatus statusCode = restTemplate.postForEntity(URL, new HttpEntity<>(body, headers), String.class).getStatusCode();
+            if (!statusCode.is2xxSuccessful()) {
+                throw new Exception("something went wrong");
             }
+            wait(10);
         }
-
     }
 
-    public void sendRandom(){
-        MessageDescription messageDescription = service.randomSend();
+    public void whiteNoiseLengthSender() throws Exception {
+        int max = 110;
+        int min = 90;
         HttpHeaders headers = new HttpHeaders();
-//        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
         headers.setContentType(MediaType.APPLICATION_JSON);
-        messageDescription.setSendTime(LocalDateTime.now());
-        service.createMessageDescription(messageDescription);
-        HttpEntity<MessageDescription> entity = new HttpEntity<>(messageDescription, headers);
-        HttpStatus statusCode = restTemplate.postForEntity(URL, entity, MessageDescription.class).getStatusCode();
-        System.out.println(statusCode);
+        int meanLength = 50;
+        Random random = new Random();
+        for (int i = 0; i < 100; i++) {
+            int length = random.nextInt(max - min) + min;
+            String body = service.randomGenerateString(length, true, true);
+            HttpStatus statusCode = restTemplate.postForEntity(URL, new HttpEntity<>(body, headers), String.class).getStatusCode();
+            if (!statusCode.is2xxSuccessful()) {
+                throw new Exception("something went wrong");
+            }
+            wait(10);
+        }
     }
 
-    public void sendWithLength(Scanner scanner){
-        System.out.println("Enter length of the message:");
-        int length = scanner.nextInt();
-        MessageDescription messageDescription = service.sendWithLength(length);
+    //should last about 17 min
+    public void whiteNoiseTimeSender() throws Exception {
+        String body = service.randomGenerateString(100, true, true);
+        int max = 110;
+        int min = 90;
         HttpHeaders headers = new HttpHeaders();
-        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
         headers.setContentType(MediaType.APPLICATION_JSON);
-        messageDescription.setSendTime(LocalDateTime.now());
-        service.createMessageDescription(messageDescription);
-        HttpEntity<MessageDescription> entity = new HttpEntity<>(messageDescription, headers);
-        HttpStatus statusCode = restTemplate.postForEntity(URL, entity, MessageDescription.class).getStatusCode();
-        System.out.println(statusCode);
-
+        Random random = new Random();
+        for (int i = 0; i < 100; i++) {
+            int delay = random.nextInt(max - min) + min;
+            HttpStatus statusCode = restTemplate.postForEntity(URL, new HttpEntity<>(body, headers), String.class).getStatusCode();
+            if (!statusCode.is2xxSuccessful()) {
+                throw new Exception("something went wrong");
+            }
+            wait(delay);
+        }
     }
 
-    public void sendWithLengthBetween(Scanner scanner){
-        System.out.println("Enter min length:");
-        int min = scanner.nextInt();
-        System.out.println("Enter max length:");
-        int max = scanner.nextInt();
-        MessageDescription messageDescription = service.sendWithLengthBetween(min, max);
+    //should last about 17 min
+    public void poissonTimeSender() throws Exception {
+        String body = service.randomGenerateString(100, true, true);
+        int meanLength = 100;
         HttpHeaders headers = new HttpHeaders();
-        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
         headers.setContentType(MediaType.APPLICATION_JSON);
-        messageDescription.setSendTime(LocalDateTime.now());
-        service.createMessageDescription(messageDescription);
-        HttpEntity<MessageDescription> entity = new HttpEntity<>(messageDescription, headers);
-        HttpStatus statusCode = restTemplate.postForEntity(URL, entity, MessageDescription.class).getStatusCode();
-        System.out.println(statusCode);
-
+        Random random = new Random();
+        for (int i = 0; i < 100; i++) {
+            int delay = (int) Math.floor(random.nextGaussian() * meanLength + meanLength);
+            HttpStatus statusCode = restTemplate.postForEntity(URL, new HttpEntity<>(body, headers), String.class).getStatusCode();
+            if (!statusCode.is2xxSuccessful()) {
+                throw new Exception("something went wrong");
+            }
+            wait(delay);
+        }
     }
 }
 
